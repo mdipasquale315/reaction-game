@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Reaction Timer - Interactive Performance Test</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0F172A;
+            color: #F1F5F9;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        header {
+            padding: 2rem 1.5rem 1rem;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(1.75rem, 5vw, 2.5rem);
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #3B82F6 0%, #10B981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #94A3B8;
+            font-size: clamp(0.875rem, 2vw, 1rem);
+            font-weight: 500;
+        }
+
+        /* Main Container */
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            gap: 2rem;
+        }
+
+        /* Game Area */
+        .game-section {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Canvas Container */
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            background: #1E293B;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(59, 130, 246, 0.2);
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Game State Overlay */
+        .game-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .game-overlay.visible {
+            opacity: 1;
+        }
+
+        .overlay-content h2 {
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .overlay-content p {
+            font-size: clamp(0.875rem, 2vw, 1.125rem);
+            color: #94A3B8;
+            max-width: 500px;
+            line-height: 1.6;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 0.875rem 2rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #1E293B;
+            color: #F1F5F9;
+            border: 2px solid #334155;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #334155;
+            border-color: #475569;
+        }
+
+        /* Instructions */
+        .instructions {
+            background: #1E293B;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            border-left: 4px solid #3B82F6;
+        }
+
+        .instructions h3 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: #3B82F6;
+        }
+
+        .instructions ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .instructions li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            color: #94A3B8;
+            font-size: 0.9375rem;
+        }
+
+        .instructions li::before {
+            content: "→";
+            color: #3B82F6;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* Status Display */
+        .status-display {
+            background: #1E293B;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #334155;
+            transition: all 0.3s ease;
+        }
+
+        .status-display.ready {
+            border-color: #10B981;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+        }
+
+        .status-display.waiting {
+            border-color: #F59E0B;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+        }
+
+        .status-display.reacting {
+            border-color: #3B82F6;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+        }
+
+        .status-display.error {
+            border-color: #EF4444;
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+        }
+
+        .status-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94A3B8;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-message {
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(1.25rem, 3vw, 1.75rem);
+            font-weight: 700;
+        }
+
+        .status-display.ready .status-message {
+            color: #10B981;
+        }
+
+        .status-display.waiting .status-message {
+            color: #F59E0B;
+        }
+
+        .status-display.reacting .status-message {
+            color: #3B82F6;
+        }
+
+        .status-display.error .status-message {
+            color: #EF4444;
+        }
+
+        .reaction-time {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #3B82F6 0%, #10B981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Statistics */
+        .stats-section {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background: #1E293B;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            border: 2px solid #334155;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: #3B82F6;
+            transform: translateY(-2px);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94A3B8;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-family: 'Poppins', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #3B82F6;
+        }
+
+        .stat-card.best .stat-value {
+            color: #10B981;
+        }
+
+        .stat-card.attempts .stat-value {
+            color: #F59E0B;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: #64748B;
+            font-size: 0.875rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                padding: 1.5rem 1rem 0.75rem;
+            }
+
+            .container {
+                gap: 1.5rem;
+            }
+
+            .controls {
+                width: 100%;
+            }
+
+            button {
+                flex: 1;
+                min-width: 140px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .canvas-container {
+                aspect-ratio: 4 / 3;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .controls {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>3D Reaction Timer</h1>
+        <p class="subtitle">Test your reflexes with millisecond precision</p>
+    </header>
+
+    <div class="container">
+        <div class="game-section">
+            <!-- Canvas Container -->
+            <div class="canvas-container">
+                <canvas id="gameCanvas"></canvas>
+                <div class="game-overlay visible" id="welcomeOverlay">
+                    <div class="overlay-content">
+                        <h2>Welcome!</h2>
+                        <p>Click "Start Game" to begin testing your reaction time. Watch the 3D shapes and click when they change!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls">
+                <button class="btn-primary" id="startBtn">Start Game</button>
+                <button class="btn-secondary" id="resetBtn">Reset Stats</button>
+            </div>
+
+            <!-- Status Display -->
+            <div class="status-display" id="statusDisplay">
+                <div class="status-label">Status</div>
+                <div class="status-message">Ready to start</div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="instructions">
+                <h3>How to Play</h3>
+                <ul>
+                    <li>Click "Start Game" to begin a new round</li>
+                    <li>Wait for the 3D shapes to change color and animation</li>
+                    <li>Click anywhere as quickly as possible when you see the change</li>
+                    <li>Your reaction time will be displayed in milliseconds</li>
+                    <li>Don't click too early or you'll get a false start!</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Statistics Section -->
+        <div class="stats-section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Average Time</div>
+                    <div class="stat-value" id="avgTime">—</div>
+                </div>
+                <div class="stat-card best">
+                    <div class="stat-label">Best Time</div>
+                    <div class="stat-value" id="bestTime">—</div>
+                </div>
+                <div class="stat-card attempts">
+                    <div class="stat-label">Attempts</div>
+                    <div class="stat-value" id="attemptCount">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Built with Three.js • Portfolio Project • © 2026</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // ===========================
+        // Game State Management
+        // ===========================
+        const GameState = {
+            IDLE: 'idle',
+            WAITING: 'waiting',
+            READY: 'ready',
+            REACTING: 'reacting',
+            RESULT: 'result',
+            FALSE_START: 'false_start'
+        };
+
+        class ReactionTimerGame {
+            constructor() {
+                // DOM Elements
+                this.canvas = document.getElementById('gameCanvas');
+                this.startBtn = document.getElementById('startBtn');
+                this.resetBtn = document.getElementById('resetBtn');
+                this.statusDisplay = document.getElementById('statusDisplay');
+                this.welcomeOverlay = document.getElementById('welcomeOverlay');
+                this.avgTimeEl = document.getElementById('avgTime');
+                this.bestTimeEl = document.getElementById('bestTime');
+                this.attemptCountEl = document.getElementById('attemptCount');
+
+                // Game State
+                this.state = GameState.IDLE;
+                this.startTime = null;
+                this.timeoutId = null;
+                this.reactionTimes = [];
+
+                // Three.js Setup
+                this.setupThreeJS();
+                this.setupEventListeners();
+                this.animate();
+            }
+
+            setupThreeJS() {
+                // Scene
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x1E293B);
+
+                // Camera
+                this.camera = new THREE.PerspectiveCamera(
+                    75,
+                    this.canvas.clientWidth / this.canvas.clientHeight,
+                    0.1,
+                    1000
+                );
+                this.camera.position.z = 5;
+
+                // Renderer
+                this.renderer = new THREE.WebGLRenderer({ 
+                    canvas: this.canvas, 
+                    antialias: true 
+                });
+                this.updateRendererSize();
+
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                this.scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(5, 5, 5);
+                this.scene.add(directionalLight);
+
+                const pointLight = new THREE.PointLight(0x3B82F6, 1, 100);
+                pointLight.position.set(-5, 5, 0);
+                this.scene.add(pointLight);
+
+                // Create Geometric Shapes
+                this.createShapes();
+
+                // Handle window resize
+                window.addEventListener('resize', () => this.handleResize());
+            }
+
+            createShapes() {
+                this.shapes = [];
+                
+                // Central rotating cube
+                const cubeGeometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+                const cubeMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0x475569,
+                    shininess: 100,
+                    specular: 0x666666
+                });
+                this.cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+                this.cube.position.set(0, 0, 0);
+                this.scene.add(this.cube);
+                this.shapes.push(this.cube);
+
+                // Orbiting spheres
+                const sphereGeometry = new THREE.SphereGeometry(0.4, 32, 32);
+                
+                for (let i = 0; i < 3; i++) {
+                    const sphereMaterial = new THREE.MeshPhongMaterial({ 
+                        color: 0x334155,
+                        shininess: 100,
+                        specular: 0x888888
+                    });
+                    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                    
+                    const angle = (i / 3) * Math.PI * 2;
+                    sphere.position.set(
+                        Math.cos(angle) * 3,
+                        Math.sin(angle) * 0.5,
+                        Math.sin(angle) * 3
+                    );
+                    
+                    sphere.userData.orbitAngle = angle;
+                    sphere.userData.orbitSpeed = 0.5 + i * 0.2;
+                    
+                    this.scene.add(sphere);
+                    this.shapes.push(sphere);
+                }
+
+                // Rotating ring
+                const torusGeometry = new THREE.TorusGeometry(2, 0.2, 16, 100);
+                const torusMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0x1E293B,
+                    shininess: 100
+                });
+                this.torus = new THREE.Mesh(torusGeometry, torusMaterial);
+                this.torus.rotation.x = Math.PI / 4;
+                this.scene.add(this.torus);
+                this.shapes.push(this.torus);
+            }
+
+            updateRendererSize() {
+                const width = this.canvas.clientWidth;
+                const height = this.canvas.clientHeight;
+                this.renderer.setSize(width, height, false);
+                this.camera.aspect = width / height;
+                this.camera.updateProjectionMatrix();
+            }
+
+            handleResize() {
+                this.updateRendererSize();
+            }
+
+            setupEventListeners() {
+                this.startBtn.addEventListener('click', () => this.startGame());
+                this.resetBtn.addEventListener('click', () => this.resetStats());
+                this.canvas.addEventListener('click', () => this.handleCanvasClick());
+            }
+
+            startGame() {
+                if (this.state !== GameState.IDLE) return;
+
+                this.setState(GameState.WAITING);
+                this.hideOverlay();
+                this.updateStatus('Waiting...', 'Wait for the shapes to change color!');
+                this.startBtn.disabled = true;
+
+                // Random delay between 1-5 seconds
+                const delay = 1000 + Math.random() * 4000;
+
+                this.timeoutId = setTimeout(() => {
+                    this.triggerReactionStimulus();
+                }, delay);
+            }
+
+            triggerReactionStimulus() {
+                this.setState(GameState.READY);
+                this.startTime = performance.now();
+                this.updateStatus('Click Now!', 'React as fast as you can!', 'ready');
+                
+                // Change shapes to ready state (green/blue)
+                this.setShapesColor(0x10B981);
+            }
+
+            handleCanvasClick() {
+                if (this.state === GameState.WAITING) {
+                    // False start
+                    this.handleFalseStart();
+                } else if (this.state === GameState.READY) {
+                    // Valid reaction
+                    this.recordReaction();
+                }
+            }
+
+            handleFalseStart() {
+                clearTimeout(this.timeoutId);
+                this.setState(GameState.FALSE_START);
+                this.updateStatus('False Start!', 'You clicked too early. Try again!', 'error');
+                this.setShapesColor(0xEF4444);
+                this.startBtn.disabled = false;
+                
+                setTimeout(() => {
+                    this.setState(GameState.IDLE);
+                    this.setShapesColor(0x475569);
+                    this.updateStatus('Ready', 'Click Start Game to try again');
+                }, 2000);
+            }
+
+            recordReaction() {
+                const endTime = performance.now();
+                const reactionTime = Math.round(endTime - this.startTime);
+                
+                this.setState(GameState.RESULT);
+                this.reactionTimes.push(reactionTime);
+                
+                this.updateStatus('Result', `${reactionTime} ms`, 'reacting');
+                this.setShapesColor(0x3B82F6);
+                this.updateStatistics();
+                
+                setTimeout(() => {
+                    this.setState(GameState.IDLE);
+                    this.setShapesColor(0x475569);
+                    this.updateStatus('Ready', 'Click Start Game for another attempt');
+                    this.startBtn.disabled = false;
+                }, 2500);
+            }
+
+            setShapesColor(color) {
+                this.shapes.forEach(shape => {
+                    shape.material.color.setHex(color);
+                });
+            }
+
+            setState(newState) {
+                this.state = newState;
+            }
+
+            updateStatus(label, message, className = '') {
+                const statusLabel = this.statusDisplay.querySelector('.status-label');
+                const statusMessage = this.statusDisplay.querySelector('.status-message');
+                
+                statusLabel.textContent = label;
+                statusMessage.textContent = message;
+                
+                // Update classes
+                this.statusDisplay.className = 'status-display';
+                if (className) {
+                    this.statusDisplay.classList.add(className);
+                }
+            }
+
+            updateStatistics() {
+                const count = this.reactionTimes.length;
+                this.attemptCountEl.textContent = count;
+
+                if (count > 0) {
+                    // Average
+                    const average = Math.round(
+                        this.reactionTimes.reduce((a, b) => a + b, 0) / count
+                    );
+                    this.avgTimeEl.textContent = `${average} ms`;
+
+                    // Best
+                    const best = Math.min(...this.reactionTimes);
+                    this.bestTimeEl.textContent = `${best} ms`;
+                }
+            }
+
+            resetStats() {
+                if (confirm('Are you sure you want to reset all statistics?')) {
+                    this.reactionTimes = [];
+                    this.avgTimeEl.textContent = '—';
+                    this.bestTimeEl.textContent = '—';
+                    this.attemptCountEl.textContent = '0';
+                    
+                    if (this.state !== GameState.IDLE) {
+                        clearTimeout(this.timeoutId);
+                        this.setState(GameState.IDLE);
+                        this.setShapesColor(0x475569);
+                        this.updateStatus('Ready', 'Statistics reset. Click Start Game!');
+                        this.startBtn.disabled = false;
+                    }
+                }
+            }
+
+            hideOverlay() {
+                this.welcomeOverlay.classList.remove('visible');
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+
+                // Rotate cube
+                this.cube.rotation.x += 0.01;
+                this.cube.rotation.y += 0.01;
+
+                // Orbit spheres
+                this.shapes.forEach((shape, index) => {
+                    if (index > 0 && index <= 3) { // Spheres only
+                        const speed = shape.userData.orbitSpeed;
+                        shape.userData.orbitAngle += 0.01 * speed;
+                        const angle = shape.userData.orbitAngle;
+                        
+                        shape.position.x = Math.cos(angle) * 3;
+                        shape.position.z = Math.sin(angle) * 3;
+                        shape.position.y = Math.sin(angle) * 0.5;
+                        
+                        shape.rotation.y += 0.02;
+                    }
+                });
+
+                // Rotate torus
+                if (this.torus) {
+                    this.torus.rotation.z += 0.005;
+                }
+
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // Initialize game when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            new ReactionTimerGame();
+        });
+    </script>
+</body>
+</html>
